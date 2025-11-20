@@ -24,4 +24,8 @@ impl KVStore {
         let r = self.store.read().await;
         r.get(key).cloned()
     }
+    pub async fn remove(&mut self, key: &str) {
+        let mut r = self.store.write().await;
+        r.remove(key);
+    }
 }

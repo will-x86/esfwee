@@ -1,5 +1,6 @@
 use bincode::{Decode, Encode, config::standard, decode_from_slice};
 use serde::Serialize;
+use serde_json::json;
 use std::path::PathBuf;
 use tokio::{
     fs::{self, File},
@@ -49,7 +50,7 @@ pub async fn put_obj(
         .ok_or_else(|| anyhow::anyhow!("hash does not have first 2 chars"))?;
     let custom_tags: Vec<String> = headers
         .iter()
-        .filter(|(k, _)| k.as_str().starts_with("x‑kv-"))
+        .filter(|(k, _)| k.as_str().starts_with("x-kv-"))
         .filter_map(|(_, v)| v.to_str().ok())
         .map(String::from)
         .collect();
@@ -124,10 +125,33 @@ pub async fn get_obj(
     Ok((headers, body))
 }
 pub async fn delete_obj(
-    State(mut _state): State<AppState>,
+    State(mut state): State<AppState>,
     Path((bucket, key)): Path<(String, String)>,
-) -> String {
-    format!("del Bucket:{bucket} - key: {key})")
+) -> Result<String, AppError> {
+    let raw = state
+        .kv_store
+        .get(&format!("{bucket}/{key}"))
+        .await
+        .ok_or_else(|| anyhow!("object does not exist"))?;
+
+    let (metadata, _len): (Metadata, _) = decode_from_slice(&raw, standard())?;
+    let data_dir = std::env::var("DATA_DIR")?;
+
+    let c2_hash = metadata
+        .hash
+        .as_bytes()
+        .first_chunk::<2>()
+        .ok_or_else(|| anyhow!("invalid hash format"))?;
+
+    let mut p = PathBuf::from(data_dir);
+    p.push("data");
+    p.push(std::str::from_utf8(c2_hash)?);
+    p.push(&key);
+    fs::remove_file(p.clone()).await?;
+    p.pop();
+    let _ = fs::remove_dir(p).await; // Ignore result error-will fail if dir is not empty, should be ok
+    state.kv_store.remove(&format!("{bucket}/{key}")).await;
+    Ok(json!({"message":"deleted successfully"}).to_string())
 }
 
 #[derive(Serialize, Encode, Decode)]
@@ -146,7 +170,7 @@ pub async fn new_bucket(
 
     let tags: Vec<String> = headers
         .iter()
-        .filter(|(k, _)| k.as_str().starts_with("x‑kv-"))
+        .filter(|(k, _)| k.as_str().starts_with("x-kv-"))
         .filter_map(|(_, v)| v.to_str().ok())
         .map(String::from)
         .collect();
@@ -205,38 +229,31 @@ mod tests {
 
     #[tokio::test]
     async fn test_put_obj_success() {
-        unsafe {
-            std::env::set_var("DATA_DIR", "/tmp/test_data");
-        }
-
-        let mut state = AppState {
-            kv_store: KVStore::new(),
-        };
-
-        // Create the bucket first
-        state.kv_store.put("test-bucket", vec![]).await;
-
-        let test_data = b"hello world";
-        let hash = hex::encode(Sha256::digest(test_data));
-
-        let mut headers = HeaderMap::new();
-        headers.insert("x-hash", hash.parse().unwrap());
-        headers.insert("x-kv-tag1", "value1".parse().unwrap());
-        headers.insert("x-kv-tag2", "value2".parse().unwrap());
-
-        let result = put_obj(
-            State(state),
-            Path(("test-bucket".to_string(), "test-key".to_string())),
-            headers,
-            Bytes::from_static(test_data),
-        )
+        temp_env::async_with_vars([("DATA_DIR", Some("/tmp/test_data"))], async {
+            let mut state = AppState {
+                kv_store: KVStore::new(),
+            };
+            state.kv_store.put("test-bucket", vec![]).await;
+            let test_data = b"hello world";
+            let hash = hex::encode(Sha256::digest(test_data));
+            let mut headers = HeaderMap::new();
+            headers.insert("x-hash", hash.parse().unwrap());
+            headers.insert("Content-Type", "text/plain".parse().unwrap());
+            headers.insert("x-kv-tag1", "value1".parse().unwrap());
+            headers.insert("x-kv-tag2", "value2".parse().unwrap());
+            let result = put_obj(
+                State(state),
+                Path(("test-bucket".to_string(), "test-key".to_string())),
+                headers,
+                Bytes::from_static(test_data),
+            )
+            .await;
+            assert!(result.is_ok());
+            let metadata_json = result.unwrap();
+            assert!(metadata_json.contains(&hash));
+        })
         .await;
-
-        assert!(result.is_ok());
-        let metadata_json = result.unwrap();
-        assert!(metadata_json.contains(&hash));
     }
-
     #[tokio::test]
     async fn test_put_obj_bucket_not_exists() {
         let state = AppState {
@@ -248,6 +265,7 @@ mod tests {
 
         let mut headers = HeaderMap::new();
         headers.insert("x-hash", hash.parse().unwrap());
+        headers.insert("Content-Type", "text/plain".parse().unwrap());
 
         let result = put_obj(
             State(state),
@@ -262,19 +280,64 @@ mod tests {
 
     #[tokio::test]
     async fn test_put_obj_hash_mismatch() {
-        unsafe {
-            std::env::set_var("DATA_DIR", "/tmp/test_data");
-        }
+        temp_env::async_with_vars([("DATA_DIR", Some("/tmp/test_data"))], async {
+            let mut state = AppState {
+                kv_store: KVStore::new(),
+            };
+            state.kv_store.put("test-bucket", vec![]).await;
 
+            let test_data = b"hello world";
+
+            let mut headers = HeaderMap::new();
+            headers.insert("x-hash", "badhash1234567890".parse().unwrap());
+            headers.insert("Content-Type", "text/plain".parse().unwrap());
+
+            let result = put_obj(
+                State(state),
+                Path(("test-bucket".to_string(), "test-key".to_string())),
+                headers,
+                Bytes::from_static(test_data),
+            )
+            .await;
+
+            assert!(result.is_err());
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn test_put_obj_missing_hash_header() {
+        let mut state = AppState {
+            kv_store: KVStore::new(),
+        };
+        state.kv_store.put("test-bucket", vec![]).await;
+
+        let mut headers = HeaderMap::new();
+        headers.insert("Content-Type", "text/plain".parse().unwrap());
+
+        let result = put_obj(
+            State(state),
+            Path(("test-bucket".to_string(), "test-key".to_string())),
+            headers,
+            Bytes::from_static(b"test"),
+        )
+        .await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_put_obj_missing_content_type() {
         let mut state = AppState {
             kv_store: KVStore::new(),
         };
         state.kv_store.put("test-bucket", vec![]).await;
 
         let test_data = b"hello world";
+        let hash = hex::encode(Sha256::digest(test_data));
 
         let mut headers = HeaderMap::new();
-        headers.insert("x-hash", "badhash1234567890".parse().unwrap());
+        headers.insert("x-hash", hash.parse().unwrap());
 
         let result = put_obj(
             State(state),
@@ -288,22 +351,229 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_put_obj_missing_hash_header() {
-        let mut state = AppState {
+    async fn test_get_obj_success() {
+        temp_env::async_with_vars([("DATA_DIR", Some("/tmp/test_data_get"))], async {
+            let mut state = AppState {
+                kv_store: KVStore::new(),
+            };
+
+            state.kv_store.put("test-bucket", vec![]).await;
+
+            let test_data = b"hello world";
+            let hash = hex::encode(Sha256::digest(test_data));
+
+            let mut headers = HeaderMap::new();
+            headers.insert("x-hash", hash.parse().unwrap());
+            headers.insert("Content-Type", "text/plain".parse().unwrap());
+
+            let _ = put_obj(
+                State(state.clone()),
+                Path(("test-bucket".to_string(), "test-key".to_string())),
+                headers,
+                Bytes::from_static(test_data),
+            )
+            .await
+            .unwrap();
+
+            let result = get_obj(
+                State(state),
+                Path(("test-bucket".to_string(), "test-key".to_string())),
+            )
+            .await;
+
+            assert!(result.is_ok());
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn test_get_obj_not_exists() {
+        let state = AppState {
             kv_store: KVStore::new(),
         };
-        state.kv_store.put("test-bucket", vec![]).await;
 
-        let headers = HeaderMap::new();
-
-        let result = put_obj(
+        let result = get_obj(
             State(state),
-            Path(("test-bucket".to_string(), "test-key".to_string())),
-            headers,
-            Bytes::from_static(b"test"),
+            Path(("test-bucket".to_string(), "nonexistent".to_string())),
         )
         .await;
 
         assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_delete_obj_success() {
+        temp_env::async_with_vars([("DATA_DIR", Some("/tmp/test_data_delete"))], async {
+            let mut state = AppState {
+                kv_store: KVStore::new(),
+            };
+
+            state.kv_store.put("test-bucket", vec![]).await;
+
+            let test_data = b"hello world";
+            let hash = hex::encode(Sha256::digest(test_data));
+
+            let mut headers = HeaderMap::new();
+            headers.insert("x-hash", hash.parse().unwrap());
+            headers.insert("Content-Type", "text/plain".parse().unwrap());
+
+            let _ = put_obj(
+                State(state.clone()),
+                Path(("test-bucket".to_string(), "test-key".to_string())),
+                headers,
+                Bytes::from_static(test_data),
+            )
+            .await
+            .unwrap();
+
+            let result = delete_obj(
+                State(state),
+                Path(("test-bucket".to_string(), "test-key".to_string())),
+            )
+            .await;
+
+            assert!(result.is_ok());
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn test_delete_obj_not_exists() {
+        let state = AppState {
+            kv_store: KVStore::new(),
+        };
+
+        let result = delete_obj(
+            State(state),
+            Path(("test-bucket".to_string(), "nonexistent".to_string())),
+        )
+        .await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_new_bucket_success() {
+        let state = AppState {
+            kv_store: KVStore::new(),
+        };
+
+        let mut headers = HeaderMap::new();
+        headers.insert("x-kv-region", "us-west".parse().unwrap());
+        headers.insert("x-kv-env", "prod".parse().unwrap());
+
+        let result = new_bucket(State(state), headers, Path("new-bucket".to_string())).await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_new_bucket_already_exists() {
+        let mut state = AppState {
+            kv_store: KVStore::new(),
+        };
+
+        state.kv_store.put("existing-bucket", vec![]).await;
+
+        let headers = HeaderMap::new();
+
+        let result = new_bucket(State(state), headers, Path("existing-bucket".to_string())).await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_get_bucket_success() {
+        let state = AppState {
+            kv_store: KVStore::new(),
+        };
+
+        let headers = HeaderMap::new();
+        let _ = new_bucket(
+            State(state.clone()),
+            headers,
+            Path("test-bucket".to_string()),
+        )
+        .await;
+
+        let result = get_bucket(State(state), Path("test-bucket".to_string())).await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_get_bucket_not_exists() {
+        let state = AppState {
+            kv_store: KVStore::new(),
+        };
+
+        let result = get_bucket(State(state), Path("nonexistent".to_string())).await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_put_obj_with_multiple_tags() {
+        temp_env::async_with_vars([("DATA_DIR", Some("/tmp/test_data_tags"))], async {
+            let mut state = AppState {
+                kv_store: KVStore::new(),
+            };
+
+            state.kv_store.put("test-bucket", vec![]).await;
+
+            let test_data = b"tagged data";
+            let hash = hex::encode(Sha256::digest(test_data));
+
+            let mut headers = HeaderMap::new();
+            headers.insert("x-hash", hash.parse().unwrap());
+            headers.insert("Content-Type", "application/json".parse().unwrap());
+            headers.insert("x-kv-tag1", "value1".parse().unwrap());
+            headers.insert("x-kv-tag2", "value2".parse().unwrap());
+            headers.insert("x-kv-tag3", "value3".parse().unwrap());
+
+            let result = put_obj(
+                State(state),
+                Path(("test-bucket".to_string(), "tagged-key".to_string())),
+                headers,
+                Bytes::from_static(test_data),
+            )
+            .await;
+
+            assert!(result.is_ok());
+            let metadata_json = result.unwrap();
+            assert!(metadata_json.contains("value1"));
+            assert!(metadata_json.contains("value2"));
+            assert!(metadata_json.contains("value3"));
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn test_put_obj_empty_body() {
+        temp_env::async_with_vars([("DATA_DIR", Some("/tmp/test_data_empty"))], async {
+            let mut state = AppState {
+                kv_store: KVStore::new(),
+            };
+
+            state.kv_store.put("test-bucket", vec![]).await;
+
+            let test_data = b"";
+            let hash = hex::encode(Sha256::digest(test_data));
+
+            let mut headers = HeaderMap::new();
+            headers.insert("x-hash", hash.parse().unwrap());
+            headers.insert("Content-Type", "text/plain".parse().unwrap());
+
+            let result = put_obj(
+                State(state),
+                Path(("test-bucket".to_string(), "empty-key".to_string())),
+                headers,
+                Bytes::from_static(test_data),
+            )
+            .await;
+
+            assert!(result.is_ok());
+        })
+        .await;
     }
 }
