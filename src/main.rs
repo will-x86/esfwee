@@ -1,5 +1,6 @@
-use crate::handlers::{delete_obj, get_bucket, get_obj, put_obj};
+use crate::handlers::{delete_obj, get_bucket, get_obj, new_bucket, put_obj};
 use crate::kv::KVStore;
+use axum::routing::post;
 use axum::{
     Router,
     routing::{delete, get, put},
@@ -29,6 +30,7 @@ fn get_router() -> axum::Router {
         .route("/bucket/{bucket}/objects/{key}", get(get_obj))
         .route("/bucket/{bucket}/objects/{key}", delete(delete_obj))
         .route("/bucket/{bucket}", get(get_bucket))
+        .route("/bucket/{bucket}", post(new_bucket))
         .with_state(state)
 }
 #[cfg(test)]

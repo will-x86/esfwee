@@ -1,4 +1,4 @@
-use bincode::Encode;
+use bincode::{Decode, Encode, config::standard, decode_from_slice};
 use serde::Serialize;
 use std::path::PathBuf;
 use tokio::{
@@ -16,13 +16,13 @@ use axum::{
 };
 use chrono::Utc;
 use sha2::{Digest, Sha256};
-use uuid::Uuid;
 
-#[derive(Debug, Encode, Serialize)]
+#[derive(Debug, Encode, Decode, Serialize)]
 struct Metadata {
     created_at: String,
     tags: Vec<String>,
     hash: String,
+    content_type: String,
 }
 #[axum::debug_handler]
 pub async fn put_obj(
@@ -38,6 +38,11 @@ pub async fn put_obj(
         .get("x-hash")
         .ok_or_else(|| anyhow::anyhow!("hash is not present"))?
         .to_str()?;
+    let content_type = headers
+        .get("Content-Type")
+        .ok_or_else(|| anyhow::anyhow!("content-type is not present"))?
+        .to_str()?
+        .to_string();
     let c2_hash = hash
         .as_bytes()
         .first_chunk::<2>()
@@ -56,6 +61,7 @@ pub async fn put_obj(
         created_at: Utc::now().to_rfc3339(),
         hash: body_hash,
         tags: custom_tags,
+        content_type,
     };
     let data_dir = env::var("DATA_DIR")?;
     let mut p = PathBuf::from(data_dir);
@@ -78,12 +84,45 @@ pub async fn put_obj(
     Ok(serde_json::to_string(&metadata)?)
 }
 pub async fn get_obj(
-    State(mut _state): State<AppState>,
+    State(state): State<AppState>,
     Path((bucket, key)): Path<(String, String)>,
-) -> String {
-    format!("get Bucket:{bucket} - key: {key})")
-}
+) -> Result<impl IntoResponse, AppError> {
+    let raw = state
+        .kv_store
+        .get(&format!("{bucket}/{key}"))
+        .await
+        .ok_or_else(|| anyhow!("object does not exist"))?;
 
+    let (metadata, _len): (Metadata, _) = decode_from_slice(&raw, standard())?;
+
+    let c2_hash = metadata
+        .hash
+        .as_bytes()
+        .first_chunk::<2>()
+        .ok_or_else(|| anyhow!("invalid hash format"))?;
+
+    let data_dir = std::env::var("DATA_DIR")?;
+    let mut p = PathBuf::from(data_dir);
+    p.push("data");
+    p.push(std::str::from_utf8(c2_hash)?);
+    p.push(&key);
+
+    // stweam from disk
+    let file = File::open(&p).await?;
+    let stream = tokio_util::io::ReaderStream::new(file);
+    let body = axum::body::Body::from_stream(stream);
+
+    let mut headers = HeaderMap::new();
+    headers.insert("Content-Type", metadata.content_type.parse()?);
+    headers.insert("x-hash", format!("\"{}\"", metadata.hash).parse()?);
+    headers.insert("ETag", format!("\"{}\"", metadata.hash).parse()?);
+    headers.insert(
+        "Cache-Control",
+        "public, max-age=31536000, immutable".parse()?,
+    );
+
+    Ok((headers, body))
+}
 pub async fn delete_obj(
     State(mut _state): State<AppState>,
     Path((bucket, key)): Path<(String, String)>,
@@ -91,8 +130,52 @@ pub async fn delete_obj(
     format!("del Bucket:{bucket} - key: {key})")
 }
 
-pub async fn get_bucket(State(mut _state): State<AppState>, Path(bucket): Path<Uuid>) -> String {
-    format!("get bucket - Bucket:{bucket} ")
+#[derive(Serialize, Encode, Decode)]
+struct MetadataBucket {
+    created_at: String,
+    tags: Vec<String>,
+}
+pub async fn new_bucket(
+    State(mut state): State<AppState>,
+    headers: HeaderMap,
+    Path(bucket): Path<String>,
+) -> Result<String, AppError> {
+    if state.kv_store.get(&bucket).await.is_some() {
+        return Err(anyhow!("bucket already exists").into());
+    };
+
+    let tags: Vec<String> = headers
+        .iter()
+        .filter(|(k, _)| k.as_str().starts_with("x‑kv-"))
+        .filter_map(|(_, v)| v.to_str().ok())
+        .map(String::from)
+        .collect();
+    let metadata = MetadataBucket {
+        created_at: Utc::now().to_rfc3339(),
+        tags,
+    };
+    state
+        .kv_store
+        .put(
+            format!("{bucket}"),
+            bincode::encode_to_vec(&metadata, bincode::config::standard())?,
+        )
+        .await;
+    Ok(serde_json::to_string(&metadata)?)
+}
+pub async fn get_bucket(
+    State(state): State<AppState>,
+    Path(bucket): Path<String>,
+) -> Result<String, AppError> {
+    let raw = state
+        .kv_store
+        .get(&bucket)
+        .await
+        .ok_or_else(|| anyhow!("no bucket exists"))?;
+
+    let (metadata, _len): (MetadataBucket, _) = decode_from_slice(&raw, standard())?;
+
+    Ok(serde_json::to_string(&metadata)?)
 }
 
 impl<E> From<E> for AppError
