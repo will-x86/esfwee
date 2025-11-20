@@ -24,7 +24,6 @@ fn get_router() -> axum::Router {
         kv_store: KVStore::new(),
     };
     Router::new()
-        .route("/", get(handlers::hello))
         // Send metadata
         .route("/bucket/{bucket}/objects/{key}", put(put_obj))
         .route("/bucket/{bucket}/objects/{key}", get(get_obj))

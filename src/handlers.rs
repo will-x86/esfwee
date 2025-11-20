@@ -17,16 +17,6 @@ use axum::{
 use chrono::Utc;
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
-pub async fn hello(State(mut state): State<AppState>) -> String {
-    let idk = state.kv_store.get("hi").await;
-    if !idk.is_some() {
-        println!("some");
-        state.kv_store.put("hi", "yurh".into()).await;
-    } else {
-        println!("none");
-    }
-    return "hi".to_string();
-}
 
 #[derive(Debug, Encode, Serialize)]
 struct Metadata {
