@@ -1,31 +1,32 @@
-use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
 #[derive(Clone)]
 pub struct KVStore {
-    store: Arc<RwLock<HashMap<String, Vec<u8>>>>,
+    db: Arc<RwLock<sled::Db>>,
 }
 
-// Format something like:
-// bucket/object-key : data
-// bucket: bucketdata
 impl KVStore {
-    pub fn new() -> Self {
+    pub fn new(path: PathBuf) -> Self {
+        let db = sled::open(path).expect("failed to open sled DB");
         Self {
-            store: Default::default(),
+            db: Arc::new(RwLock::new(db)),
         }
     }
-    pub async fn put(&mut self, key: impl Into<String>, value: Vec<u8>) {
-        let mut w = self.store.write().await;
-        w.insert(key.into(), value);
+
+    pub async fn put(&self, key: impl Into<Vec<u8>>, value: Vec<u8>) {
+        let db = self.db.read().await;
+        db.insert(key.into(), value).unwrap();
     }
-    pub async fn get(&self, key: &str) -> Option<Vec<u8>> {
-        let r = self.store.read().await;
-        r.get(key).cloned()
+
+    pub async fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
+        let db = self.db.read().await;
+        db.get(key).ok().flatten().map(|v| v.to_vec())
     }
-    pub async fn remove(&mut self, key: &str) {
-        let mut r = self.store.write().await;
-        r.remove(key);
+
+    pub async fn remove(&self, key: &[u8]) {
+        let db = self.db.read().await;
+        db.remove(key).unwrap();
     }
 }

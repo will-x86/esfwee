@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::handlers::{delete_obj, get_bucket, get_obj, new_bucket, put_obj};
 use crate::kv::KVStore;
 use axum::routing::post;
@@ -22,7 +24,7 @@ async fn main() {
 }
 fn get_router() -> axum::Router {
     let state = AppState {
-        kv_store: KVStore::new(),
+        kv_store: KVStore::new(PathBuf::from(env::var("KV_DIR").expect("no kv dir set"))),
     };
     Router::new()
         .route("/bucket/{bucket}/objects/{key}", put(put_obj))
@@ -31,21 +33,4 @@ fn get_router() -> axum::Router {
         .route("/bucket/{bucket}", get(get_bucket))
         .route("/bucket/{bucket}", post(new_bucket))
         .with_state(state)
-}
-#[cfg(test)]
-mod tests {
-    use axum::body::Bytes;
-    use axum_test::TestServer;
-
-    use crate::get_router;
-    #[tokio::test]
-    async fn bucket_not_exist() {
-        let app = get_router();
-        let server = TestServer::new(app).unwrap();
-        let response = server
-            .put("/bucket/not_exist/objects/na")
-            .bytes(Bytes::from_static(b"lmfao"))
-            .await;
-        assert!(response.status_code() == 500);
-    }
 }
