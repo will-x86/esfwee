@@ -1,0 +1,24 @@
+meta {
+  name: Get page
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/manga/chapters/2/pages/5
+  body: none
+  auth: inherit
+}
+
+body:json {
+  {
+    "title":"updated",
+    "description":"updated",
+    "author":"updated"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

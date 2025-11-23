@@ -1,4 +1,6 @@
+pub mod anilist;
 pub mod api;
+pub mod db;
 pub mod storage;
 
 use std::path::PathBuf;

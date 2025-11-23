@@ -1,0 +1,22 @@
+meta {
+  name: UploadManga
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/manga
+  body: multipartForm
+  auth: inherit
+}
+
+body:multipart-form {
+  anilist_id: 105778
+  chapter_number: 1.0
+  file: @file(/home/will/projects/clones/esfwee/data/csm.cbz)
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

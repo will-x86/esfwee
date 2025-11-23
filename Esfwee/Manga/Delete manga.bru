@@ -1,0 +1,24 @@
+meta {
+  name: Delete manga
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/manga/105778
+  body: none
+  auth: inherit
+}
+
+body:json {
+  {
+    "title":"updated",
+    "description":"updated",
+    "author":"updated"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

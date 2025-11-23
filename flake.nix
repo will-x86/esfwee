@@ -45,6 +45,7 @@
         devShells.default = mkShell {
           LD_LIBRARY_PATH = lib.makeLibraryPath [ openssl ];
           buildInputs = [
+            sqlx-cli
             openssl
             pkg-config
             eza
@@ -55,6 +56,7 @@
             androidComposition.androidsdk
             jdk17
             nodejs
+            bruno
           ];
           shellHook = ''
             alias ls=eza

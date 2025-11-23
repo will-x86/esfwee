@@ -1,0 +1,16 @@
+meta {
+  name: ListAllManga
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/manga
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
