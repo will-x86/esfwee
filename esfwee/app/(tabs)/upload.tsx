@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,6 @@ import {
   FlatList,
   Alert,
 } from "react-native";
-import { Image } from "expo-image";
 import * as DocumentPicker from "expo-document-picker";
 import { useLazyQuery } from "@apollo/client/react";
 import { useTheme } from "@/context/theme-context";
@@ -18,6 +17,7 @@ import { useEsfweeUrl } from "@/context/esfwee";
 import { MangaApiClient, Manga } from "@/lib/esfwee-api";
 import { SEARCH_MANGA, GET_MANGA_DETAILS } from "@/lib/anilist-queries";
 import Feather from "@expo/vector-icons/Feather";
+import { MangaCard } from "@/components/MangaCard";
 
 type UploadMode = "local" | "search";
 
@@ -52,6 +52,7 @@ export default function UploadScreen() {
   const [uploading, setUploading] = useState(false);
   const [localManga, setLocalManga] = useState<Manga[]>([]);
   const [loadingLocal, setLoadingLocal] = useState(false);
+  const [covers, setCovers] = useState<Record<number, string>>({});
 
   const [searchManga, { data: searchData, loading: searchingAnilist }] =
     useLazyQuery(SEARCH_MANGA);
@@ -59,7 +60,7 @@ export default function UploadScreen() {
   const [getMangaDetails, { data: mangaDetailsData, loading: loadingDetails }] =
     useLazyQuery(GET_MANGA_DETAILS);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const loadLocalManga = async () => {
       if (!esfweeUrl) return;
       setLoadingLocal(true);
@@ -67,6 +68,15 @@ export default function UploadScreen() {
         const client = new MangaApiClient(esfweeUrl);
         const manga = await client.listManga();
         setLocalManga(manga);
+
+        const newCovers: Record<number, string> = {};
+        for (const m of manga) {
+          const { data } = await getMangaDetails({ variables: { id: m.anilist_id } });
+          if (data?.Media?.coverImage?.medium) {
+            newCovers[m.anilist_id] = data.Media.coverImage.medium;
+          }
+        }
+        setCovers(newCovers);
       } catch (error) {
         console.error("Failed to load local manga:", error);
         Alert.alert("Error", "Failed to load manga from server");
@@ -167,43 +177,13 @@ export default function UploadScreen() {
     const coverUri = item.coverImage?.medium || item.coverImage?.large;
 
     return (
-      <TouchableOpacity
-        style={[styles.mangaCard, { backgroundColor: colors.surface }]}
+      <MangaCard
+        id={item.id}
+        title={title}
+        coverUri={coverUri}
+        chapters={item.chapters}
         onPress={() => handleSelectManga(item)}
-      >
-        {coverUri ? (
-          <Image
-            source={{ uri: coverUri }}
-            style={styles.mangaCover}
-            contentFit="cover"
-          />
-        ) : (
-          <View
-            style={[
-              styles.mangaCover,
-              { backgroundColor: colors.backgroundSecondary },
-            ]}
-          />
-        )}
-        <View style={styles.mangaInfo}>
-          <Text
-            style={[
-              themeStyles.body,
-              { color: colors.text, fontWeight: "600" },
-            ]}
-            numberOfLines={2}
-          >
-            {title}
-          </Text>
-          {item.chapters && (
-            <Text
-              style={[themeStyles.caption, { color: colors.textSecondary }]}
-            >
-              {item.chapters} chapters
-            </Text>
-          )}
-        </View>
-      </TouchableOpacity>
+      />
     );
   };
 
@@ -212,7 +192,7 @@ export default function UploadScreen() {
       ? localManga.map((m: Manga) => ({
           id: m.anilist_id,
           title: { romaji: m.title, english: null, native: null },
-          coverImage: { large: null, medium: null },
+          coverImage: { large: null, medium: covers[m.anilist_id] || null },
           chapters: null,
           volumes: null,
           format: null,
@@ -413,18 +393,5 @@ const styles = StyleSheet.create({
   },
   mangaList: {
     marginBottom: 16,
-  },
-  mangaCard: {
-    width: 140,
-    marginRight: 12,
-    borderRadius: 8,
-    overflow: "hidden",
-  },
-  mangaCover: {
-    width: "100%",
-    height: 200,
-  },
-  mangaInfo: {
-    padding: 8,
   },
 });
