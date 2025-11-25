@@ -8,24 +8,26 @@ import {
   Text,
 } from "react-native";
 import { useAuth } from "@/context/auth-context";
+import { useEsfweeUrl } from "@/context/esfwee";
 import { fetchUserData, AniListUser } from "@/lib/anilist";
 import { router } from "expo-router";
 
 export default function HomeScreen() {
   const { anilistToken, logout, isLoading: authLoading } = useAuth();
+  const { isLoading, url } = useEsfweeUrl();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<AniListUser | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!authLoading) {
-      if (!anilistToken) {
-        router.replace("/login");
-      } else {
-        loadUserData();
-      }
+    if (authLoading || isLoading) return;
+
+    if (!anilistToken || !url) {
+      router.replace("/login");
+    } else {
+      loadUserData();
     }
-  }, [authLoading, anilistToken]);
+  }, [authLoading, anilistToken, isLoading, url]);
 
   const loadUserData = async () => {
     if (!anilistToken) return;

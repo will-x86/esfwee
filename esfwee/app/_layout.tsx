@@ -1,28 +1,22 @@
-import { router, Stack } from "expo-router";
+import { Stack } from "expo-router";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { View } from "react-native";
-import { useEffect } from "react";
-import { AuthProvider, useAuth } from "@/context/auth-context";
+import { AuthProvider } from "@/context/auth-context";
+import { EsfweeUrlProvider } from "@/context/esfwee";
 
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <HomeLayout />
+      <EsfweeUrlProvider>
+        <HomeLayout />
+      </EsfweeUrlProvider>
     </AuthProvider>
   );
 }
 
 function HomeLayout() {
-  const { isLoading, isLoggedInAnilist } = useAuth();
   const colorScheme = useColorScheme();
-
-  useEffect(() => {
-    if (!isLoading && !isLoggedInAnilist) {
-      router.replace("/login");
-    }
-  }, [isLoading, isLoggedInAnilist]);
-
   return (
     <View
       style={{

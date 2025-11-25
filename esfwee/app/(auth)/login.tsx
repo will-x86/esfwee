@@ -5,13 +5,28 @@ import {
   Platform,
   ScrollView,
   Pressable,
+  TextInput,
   View,
   Text,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useEsfweeUrl } from "@/context/esfwee";
+import { useAuth } from "@/context/auth-context";
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { url, setUrl } = useEsfweeUrl();
+  const { anilistToken, isLoading: authLoading } = useAuth();
+
+  const [text, onChangeText] = React.useState(url || undefined);
+
+  const onPressEsfwee = async () => {
+    console.log(text);
+    await setUrl(text);
+    if (anilistToken && url && !authLoading) {
+      router.push("/");
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -25,7 +40,6 @@ export default function LoginScreen() {
             Connect your AniList account to start
           </Text>
         </View>
-
         <View style={styles.buttonContainer}>
           <Pressable
             style={({ pressed }) => [
@@ -37,6 +51,26 @@ export default function LoginScreen() {
             <Text style={styles.buttonText}>Connect to AniList</Text>
           </Pressable>
         </View>
+        <View style={styles.buttonContainer}>
+          <Text style={styles.subtitle}>
+            Connect your esfwee server to start
+          </Text>
+          <TextInput
+            style={styles.input}
+            onChangeText={onChangeText}
+            value={text}
+            placeholder="Enter esfwee server URL"
+          />
+          <Pressable
+            style={({ pressed }) => [
+              styles.button,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={onPressEsfwee}
+          >
+            <Text style={styles.buttonText}>Connect to esfwee</Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -46,6 +80,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  input: {
+    height: 40,
+    margin: 12,
+    borderWidth: 1,
+    padding: 10,
+    borderRadius: 4,
   },
   scrollContainer: {
     flexGrow: 1,

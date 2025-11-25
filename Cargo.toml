@@ -26,6 +26,7 @@ tokio-util = { version = "0.7.17", features = ["io"] }
 uuid = { version = "1.18.1", features = ["serde"]}
 zip = "6.0.0"
 reqwest = { version = "0.12", features = ["json"] }
+rust-anilist = "0.1.5"
 
 [lib]
 name = "esfwee"

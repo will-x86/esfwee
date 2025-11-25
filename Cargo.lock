@@ -562,6 +562,7 @@ dependencies = [
  "env",
  "hex",
  "reqwest",
+ "rust-anilist",
  "serde",
  "serde_json",
  "sha2",
@@ -1936,6 +1937,20 @@ dependencies = [
  "spki",
  "subtle",
  "zeroize",
+]
+
+[[package]]
+name = "rust-anilist"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "822bc2b294507ec568aa2b4af5460ac28d61191ffa5e4a9a856f7ecd5c0248ab"
+dependencies = [
+ "chrono",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
 ]
 
 [[package]]
