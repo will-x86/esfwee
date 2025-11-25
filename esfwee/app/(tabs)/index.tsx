@@ -11,10 +11,12 @@ import { useAuth } from "@/context/auth-context";
 import { useEsfweeUrl } from "@/context/esfwee";
 import { fetchUserData, AniListUser } from "@/lib/anilist";
 import { router } from "expo-router";
+import { useTheme } from "@/context/theme-context";
 
 export default function HomeScreen() {
   const { anilistToken, logout, isLoading: authLoading } = useAuth();
   const { isLoading, url } = useEsfweeUrl();
+  const { colors, styles: themeStyles } = useTheme();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<AniListUser | null>(null);
   const [error, setError] = useState("");
@@ -48,54 +50,144 @@ export default function HomeScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#02A9FF" />
-        <Text style={styles.loadingText}>Loading your AniList data...</Text>
+      <View
+        style={[
+          themeStyles.container,
+          themeStyles.center,
+          { backgroundColor: colors.background },
+        ]}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text
+          style={[
+            themeStyles.body,
+            { marginTop: 16, color: colors.textSecondary },
+          ]}
+        >
+          Loading your AniList data...
+        </Text>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>Error: {error}</Text>
-        <TouchableOpacity style={styles.button} onPress={loadUserData}>
-          <Text style={styles.buttonText}>Retry</Text>
+      <View
+        style={[
+          themeStyles.container,
+          themeStyles.center,
+          { backgroundColor: colors.background },
+        ]}
+      >
+        <Text
+          style={[
+            themeStyles.body,
+            { color: colors.error, marginBottom: 16, textAlign: "center" },
+          ]}
+        >
+          Error: {error}
+        </Text>
+        <TouchableOpacity
+          style={[themeStyles.button, { backgroundColor: colors.primary }]}
+          onPress={loadUserData}
+        >
+          <Text style={[themeStyles.body, { color: colors.buttonText }]}>
+            Retry
+          </Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.scrollView}>
-      <View style={styles.container}>
-        <Text style={styles.title}>Welcome to esfwee idk!</Text>
+    <ScrollView style={{ flex: 1, backgroundColor: colors.background }}>
+      <View style={[themeStyles.container, { alignItems: "center" }]}>
+        <Text style={[themeStyles.title, { color: colors.text }]}>
+          Welcome to esfwee idk!
+        </Text>
 
         {user && (
-          <View style={styles.userCard}>
-            <Text style={styles.userName}>{user.name}</Text>
-            <Text style={styles.userId}>ID: {user.id}</Text>
+          <View
+            style={[
+              themeStyles.card,
+              {
+                backgroundColor: colors.surface,
+                width: "100%",
+                alignItems: "center",
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.userName,
+                { color: colors.primary, fontWeight: "bold" },
+              ]}
+            >
+              {user.name}
+            </Text>
+            <Text
+              style={[
+                themeStyles.caption,
+                { color: colors.textSecondary, marginBottom: 20 },
+              ]}
+            >
+              ID: {user.id}
+            </Text>
 
             <View style={styles.statsContainer}>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>
+              <View style={themeStyles.center}>
+                <Text
+                  style={[
+                    styles.statValue,
+                    { color: colors.text, fontWeight: "bold" },
+                  ]}
+                >
                   {user.statistics.manga.count}
                 </Text>
-                <Text style={styles.statLabel}>Manga in List</Text>
+                <Text
+                  style={[
+                    themeStyles.caption,
+                    { color: colors.textSecondary, marginTop: 4 },
+                  ]}
+                >
+                  Manga in List
+                </Text>
               </View>
 
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>
+              <View style={themeStyles.center}>
+                <Text
+                  style={[
+                    styles.statValue,
+                    { color: colors.text, fontWeight: "bold" },
+                  ]}
+                >
                   {user.statistics.manga.chaptersRead}
                 </Text>
-                <Text style={styles.statLabel}>Chapters Read</Text>
+                <Text
+                  style={[
+                    themeStyles.caption,
+                    { color: colors.textSecondary, marginTop: 4 },
+                  ]}
+                >
+                  Chapters Read
+                </Text>
               </View>
             </View>
           </View>
         )}
 
-        <TouchableOpacity style={styles.logoutButton} onPress={logout}>
-          <Text style={styles.logoutButtonText}>Logout</Text>
+        <TouchableOpacity
+          style={[themeStyles.button, { backgroundColor: colors.error }]}
+          onPress={logout}
+        >
+          <Text
+            style={[
+              themeStyles.body,
+              { color: colors.buttonText, fontWeight: "600" },
+            ]}
+          >
+            Logout
+          </Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -103,91 +195,16 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  container: {
-    flex: 1,
-    padding: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#fff",
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 24,
-    color: "#000",
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: "#666",
-  },
-  errorText: {
-    color: "red",
-    fontSize: 16,
-    marginBottom: 16,
-    textAlign: "center",
-  },
-  userCard: {
-    width: "100%",
-    backgroundColor: "#f5f5f5",
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 24,
-    alignItems: "center",
-  },
   userName: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#02A9FF",
     marginBottom: 8,
-  },
-  userId: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 20,
   },
   statsContainer: {
     flexDirection: "row",
     gap: 32,
     marginTop: 16,
   },
-  statItem: {
-    alignItems: "center",
-  },
   statValue: {
     fontSize: 32,
-    fontWeight: "bold",
-    color: "#000",
-  },
-  statLabel: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 4,
-  },
-  button: {
-    backgroundColor: "#02A9FF",
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  logoutButton: {
-    backgroundColor: "#ff4444",
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  logoutButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
   },
 });

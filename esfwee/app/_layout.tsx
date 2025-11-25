@@ -1,41 +1,31 @@
 import { Stack } from "expo-router";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { View } from "react-native";
 import { AuthProvider } from "@/context/auth-context";
 import { EsfweeUrlProvider } from "@/context/esfwee";
+import { ThemeProvider, useTheme } from "@/context/theme-context";
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <EsfweeUrlProvider>
-        <HomeLayout />
-      </EsfweeUrlProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <EsfweeUrlProvider>
+          <HomeLayout />
+        </EsfweeUrlProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
 function HomeLayout() {
-  const colorScheme = useColorScheme();
+  const { colors } = useTheme();
   return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: colorScheme === "dark" ? "#000" : "#fff",
-      }}
-    >
-      <SafeAreaView
-        style={{
-          flex: 1,
-          backgroundColor: colorScheme === "dark" ? "#000" : "#fff",
-        }}
-      >
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
         <Stack
           screenOptions={{
             headerShown: false,
-            contentStyle: {
-              backgroundColor: colorScheme === "dark" ? "#000" : "#fff",
-            },
+            contentStyle: { backgroundColor: colors.background },
           }}
         />
       </SafeAreaView>

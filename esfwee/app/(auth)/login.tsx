@@ -12,17 +12,21 @@ import {
 import { useRouter } from "expo-router";
 import { useEsfweeUrl } from "@/context/esfwee";
 import { useAuth } from "@/context/auth-context";
+import { useTheme } from "@/context/theme-context";
 
 export default function LoginScreen() {
   const router = useRouter();
   const { url, setUrl } = useEsfweeUrl();
   const { anilistToken, isLoading: authLoading } = useAuth();
+  const { colors, styles: themeStyles } = useTheme();
 
   const [text, onChangeText] = React.useState(url || undefined);
 
   const onPressEsfwee = async () => {
     console.log(text);
-    await setUrl(text);
+    if (text) {
+      await setUrl(text);
+    }
     if (anilistToken && url && !authLoading) {
       router.push("/");
     }
@@ -30,45 +34,57 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[themeStyles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.headerContainer}>
-          <Text style={styles.title}>AniList Reader</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[themeStyles.title, { color: colors.text }]}>
+            AniList Reader
+          </Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             Connect your AniList account to start
           </Text>
         </View>
         <View style={styles.buttonContainer}>
           <Pressable
             style={({ pressed }) => [
-              styles.button,
+              themeStyles.button,
+              { backgroundColor: colors.primary },
               pressed && styles.buttonPressed,
             ]}
             onPress={() => router.push("/anilist-auth")}
           >
-            <Text style={styles.buttonText}>Connect to AniList</Text>
+            <Text style={[themeStyles.body, { color: colors.buttonText }]}>
+              Connect to AniList
+            </Text>
           </Pressable>
         </View>
         <View style={styles.buttonContainer}>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             Connect your esfwee server to start
           </Text>
           <TextInput
-            style={styles.input}
+            style={[
+              themeStyles.input,
+              { borderColor: colors.border, color: colors.text },
+            ]}
             onChangeText={onChangeText}
             value={text}
             placeholder="Enter esfwee server URL"
+            placeholderTextColor={colors.textMuted}
           />
           <Pressable
             style={({ pressed }) => [
-              styles.button,
+              themeStyles.button,
+              { backgroundColor: colors.primary },
               pressed && styles.buttonPressed,
             ]}
             onPress={onPressEsfwee}
           >
-            <Text style={styles.buttonText}>Connect to esfwee</Text>
+            <Text style={[themeStyles.body, { color: colors.buttonText }]}>
+              Connect to esfwee
+            </Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -77,17 +93,6 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  input: {
-    height: 40,
-    margin: 12,
-    borderWidth: 1,
-    padding: 10,
-    borderRadius: 4,
-  },
   scrollContainer: {
     flexGrow: 1,
     justifyContent: "center",
@@ -96,11 +101,6 @@ const styles = StyleSheet.create({
   headerContainer: {
     alignItems: "center",
     marginBottom: 40,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    marginBottom: 8,
   },
   subtitle: {
     marginTop: 8,
@@ -112,19 +112,8 @@ const styles = StyleSheet.create({
     width: "100%",
     gap: 16,
   },
-  button: {
-    padding: 16,
-    borderRadius: 8,
-    alignItems: "center",
-    backgroundColor: "#02A9FF",
-  },
   buttonPressed: {
     opacity: 0.8,
     transform: [{ scale: 0.98 }],
-  },
-  buttonText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 16,
   },
 });

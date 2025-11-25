@@ -2,18 +2,18 @@ import { Tabs } from "expo-router";
 import React from "react";
 
 import { HapticTab } from "@/components/haptic-tab";
-import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTheme } from "@/context/theme-context";
+import Feather from "@expo/vector-icons/Feather";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { colors } = useTheme();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
-        tabBarInActiveTintColor: Colors[colorScheme ?? "light"].tabIconDefault,
+        tabBarActiveTintColor: colors.tabIconSelected,
+        tabBarInActiveTintColor: colors.tabIconDefault,
+        tabBarStyle: { backgroundColor: colors.surface },
         headerShown: false,
         tabBarButton: HapticTab,
       }}
@@ -23,7 +23,7 @@ export default function TabLayout() {
         options={{
           title: "Home",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="house.fill" color={color} />
+            <Feather name="home" size={24} color={color} />
           ),
         }}
       />
@@ -32,7 +32,7 @@ export default function TabLayout() {
         options={{
           title: "Settings",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="settings.fill" color={color} />
+            <Feather name="settings" size={24} color={color} />
           ),
         }}
       />
