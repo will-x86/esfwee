@@ -11,7 +11,7 @@ use sqlx::{Pool, Sqlite, prelude::FromRow};
 use tokio::fs::{self, File};
 use tokio::io::AsyncWriteExt;
 
-use crate::{anilist, AppState};
+use crate::{AppState, anilist};
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -336,13 +336,12 @@ where
         Self(err.into())
     }
 }
-
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Error: {}", self.0),
-        )
-            .into_response()
+        let error_message = self.0.to_string();
+
+        eprintln!("Internal error: {:?}", self.0);
+
+        (StatusCode::INTERNAL_SERVER_ERROR, error_message).into_response()
     }
 }

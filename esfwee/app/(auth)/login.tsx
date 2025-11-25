@@ -16,19 +16,22 @@ import { useTheme } from "@/context/theme-context";
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { url, setUrl } = useEsfweeUrl();
+  const { url, setUrl, isLoading: urlLoading } = useEsfweeUrl();
   const { anilistToken, isLoading: authLoading } = useAuth();
   const { colors, styles: themeStyles } = useTheme();
 
   const [text, onChangeText] = React.useState(url || undefined);
 
+  React.useEffect(() => {
+    if (!authLoading && !urlLoading && anilistToken && url) {
+      router.replace("/");
+    }
+  }, [authLoading, urlLoading, anilistToken, url]);
+
   const onPressEsfwee = async () => {
     console.log(text);
     if (text) {
       await setUrl(text);
-    }
-    if (anilistToken && url && !authLoading) {
-      router.push("/");
     }
   };
 
@@ -71,7 +74,7 @@ export default function LoginScreen() {
             ]}
             onChangeText={onChangeText}
             value={text}
-            placeholder="Enter esfwee server URL"
+            placeholder="Enter your esfwee url"
             placeholderTextColor={colors.textMuted}
           />
           <Pressable

@@ -12,7 +12,6 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: colors.tabIconSelected,
-        tabBarInActiveTintColor: colors.tabIconDefault,
         tabBarStyle: { backgroundColor: colors.surface },
         headerShown: false,
         tabBarButton: HapticTab,
@@ -24,6 +23,24 @@ export default function TabLayout() {
           title: "Home",
           tabBarIcon: ({ color }) => (
             <Feather name="home" size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="upload"
+        options={{
+          title: "Upload",
+          tabBarIcon: ({ color }) => (
+            <Feather name="book" size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="read"
+        options={{
+          title: "Read",
+          tabBarIcon: ({ color }) => (
+            <Feather name="book" size={24} color={color} />
           ),
         }}
       />

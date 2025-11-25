@@ -4,14 +4,17 @@ import { View } from "react-native";
 import { AuthProvider } from "@/context/auth-context";
 import { EsfweeUrlProvider } from "@/context/esfwee";
 import { ThemeProvider, useTheme } from "@/context/theme-context";
+import { ApolloClientProvider } from "@/context/apollo-context";
 
 export default function RootLayout() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <EsfweeUrlProvider>
-          <HomeLayout />
-        </EsfweeUrlProvider>
+        <ApolloClientProvider>
+          <EsfweeUrlProvider>
+            <HomeLayout />
+          </EsfweeUrlProvider>
+        </ApolloClientProvider>
       </AuthProvider>
     </ThemeProvider>
   );

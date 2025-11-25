@@ -24,9 +24,6 @@ export default function SettingsScreen() {
     if (text) {
       await setUrl(text);
     }
-    if (anilistToken && url && !authLoading) {
-      router.push("/");
-    }
   };
 
   return (
