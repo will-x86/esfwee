@@ -12,7 +12,7 @@ interface MangaCardProps {
 }
 
 export function MangaCard({
-  id,
+  //  id,
   title,
   coverUri,
   chapters,
@@ -41,10 +41,7 @@ export function MangaCard({
       )}
       <View style={styles.mangaInfo}>
         <Text
-          style={[
-            themeStyles.body,
-            { color: colors.text, fontWeight: "600" },
-          ]}
+          style={[themeStyles.body, { color: colors.text, fontWeight: "600" }]}
           numberOfLines={2}
         >
           {title}

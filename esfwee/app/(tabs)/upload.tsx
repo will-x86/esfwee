@@ -71,7 +71,9 @@ export default function UploadScreen() {
 
         const newCovers: Record<number, string> = {};
         for (const m of manga) {
-          const { data } = await getMangaDetails({ variables: { id: m.anilist_id } });
+          const { data } = await getMangaDetails({
+            variables: { id: m.anilist_id },
+          });
           if (data?.Media?.coverImage?.medium) {
             newCovers[m.anilist_id] = data.Media.coverImage.medium;
           }

@@ -25,6 +25,35 @@ export default function AnilistAuthScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    const handleRedirect = async (url: string) => {
+      try {
+        if (url.includes("#")) {
+          const hashFragment = url.split("#")[1];
+          const params = new URLSearchParams(hashFragment);
+          const token = params.get("access_token");
+          if (token) {
+            await loginAnilist(token);
+            router.replace("/");
+          } else {
+            setError("Failed to get authentication token from redirect URL.");
+          }
+        }
+      } catch (e) {
+        console.error("Redirect handling error:", e);
+        setError("Authentication failed. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    const handleDeepLink = (event: { url: string }) => {
+      handleRedirect(event.url);
+    };
+    const setupDeepLinking = () => {
+      Linking.addEventListener("url", handleDeepLink);
+      Linking.getInitialURL().then((url) => {
+        if (url) handleRedirect(url);
+      });
+    };
     if (isLoggedInAnilist) {
       router.replace("/");
     }
@@ -34,39 +63,7 @@ export default function AnilistAuthScreen() {
     return () => {
       Linking.removeAllListeners("url");
     };
-  }, [isLoggedInAnilist, router]);
-
-  const setupDeepLinking = () => {
-    Linking.addEventListener("url", handleDeepLink);
-    Linking.getInitialURL().then((url) => {
-      if (url) handleRedirect(url);
-    });
-  };
-
-  const handleDeepLink = (event: { url: string }) => {
-    handleRedirect(event.url);
-  };
-
-  const handleRedirect = async (url: string) => {
-    try {
-      if (url.includes("#")) {
-        const hashFragment = url.split("#")[1];
-        const params = new URLSearchParams(hashFragment);
-        const token = params.get("access_token");
-        if (token) {
-          await loginAnilist(token);
-          router.replace("/");
-        } else {
-          setError("Failed to get authentication token from redirect URL.");
-        }
-      }
-    } catch (e) {
-      console.error("Redirect handling error:", e);
-      setError("Authentication failed. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [isLoggedInAnilist, router, loginAnilist]);
 
   const handleLogin = async () => {
     setIsLoading(true);

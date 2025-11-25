@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   StyleSheet,
   KeyboardAvoidingView,
@@ -22,7 +22,7 @@ export default function LoginScreen() {
 
   const [text, onChangeText] = React.useState(url || undefined);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!authLoading && !urlLoading && anilistToken && url) {
       router.replace("/");
     }
