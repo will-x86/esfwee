@@ -8,11 +8,9 @@ const config: CodegenConfig = {
       plugins: [
         "typescript",
         "typescript-operations",
-        "typescript-react-query",
       ],
       config: {
         avoidOptionals: true,
-        fetcher: "fetch",
       },
     },
   },

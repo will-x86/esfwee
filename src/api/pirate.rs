@@ -112,6 +112,7 @@ pub async fn download_chapter(
         let mut file = File::create(file_path).await?;
         file.write_all(&bytes).await?;
         downloaded += 1;
+        println!("Downloaded {filename}");
     }
     let (title, author, description) =
         anilist::fetch_manga_metadata(req.anilist_id.clone()).await?;

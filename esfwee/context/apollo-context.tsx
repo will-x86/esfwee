@@ -27,7 +27,19 @@ export function ApolloClientProvider({ children }: { children: ReactNode }) {
 
     return new ApolloClient({
       link: authLink.concat(httpLink),
-      cache: new InMemoryCache(),
+      cache: new InMemoryCache({
+        typePolicies: {
+          Query: {
+            fields: {
+              Page: {
+                merge(existing, incoming) {
+                  return incoming;
+                },
+              },
+            },
+          },
+        },
+      }),
     });
   }, [anilistToken]);
 

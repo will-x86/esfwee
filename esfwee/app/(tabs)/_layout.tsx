@@ -30,7 +30,7 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
+      {/*<Tabs.Screen
         name="upload"
         options={{
           title: "Upload",
@@ -39,6 +39,7 @@ export default function TabLayout() {
           ),
         }}
       />
+      */}
       <Tabs.Screen
         name="read"
         options={{

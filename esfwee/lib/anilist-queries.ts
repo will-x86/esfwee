@@ -155,3 +155,32 @@ export const GET_POPULAR_MANGA: TypedDocumentNode<
     }
   }
 `;
+
+export const GET_RECOMMENDATIONS = gql`
+  query GetRecommendations($page: Int, $perPage: Int) {
+    Page(page: $page, perPage: $perPage) {
+      pageInfo {
+        hasNextPage
+        currentPage
+        lastPage
+      }
+      media(type: MANGA, sort: TRENDING_DESC) {
+        id
+        title {
+          romaji
+          english
+          native
+        }
+        coverImage {
+          large
+          medium
+        }
+        chapters
+        volumes
+        format
+        status
+        averageScore
+      }
+    }
+  }
+`;
