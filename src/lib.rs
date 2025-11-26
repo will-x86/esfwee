@@ -1,5 +1,6 @@
 pub mod anilist;
 pub mod api;
+pub mod arrrrr;
 pub mod db;
 pub mod storage;
 

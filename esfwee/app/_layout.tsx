@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { View } from "react-native";
+import { View, StatusBar } from "react-native";
 import { AuthProvider } from "@/context/auth-context";
 import { EsfweeUrlProvider } from "@/context/esfwee";
 import { ThemeProvider, useTheme } from "@/context/theme-context";
@@ -24,9 +24,13 @@ export default function RootLayout() {
 }
 
 function HomeLayout() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={colors.surface}
+      />
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
         <Stack
           screenOptions={{

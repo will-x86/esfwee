@@ -76,9 +76,14 @@ export const Reader = ({ esfweeUrl, chapter, onBack }: ReaderProps) => {
       tabBarStyle: { display: "none" },
       headerShown: false,
     });
-    return () =>
-      navigation.setOptions({ tabBarStyle: undefined, headerShown: undefined });
-  }, [navigation]);
+
+    return () => {
+      navigation.setOptions({
+        tabBarStyle: { backgroundColor: colors.surface },
+        headerShown: false,
+      });
+    };
+  }, [navigation, colors]);
 
   useEffect(() => {
     if (!showUI) NavigationBar.setVisibilityAsync("hidden");
@@ -87,7 +92,7 @@ export const Reader = ({ esfweeUrl, chapter, onBack }: ReaderProps) => {
 
   const scrollToSpread = (index: number) => {
     if (index >= 0 && index < spreads.length) {
-      flatListRef.current?.scrollToIndex({ index, animated: true });
+      flatListRef.current?.scrollToIndex({ index, animated: false });
     }
   };
 
@@ -153,7 +158,11 @@ export const Reader = ({ esfweeUrl, chapter, onBack }: ReaderProps) => {
 
   return (
     <View style={{ flex: 1, backgroundColor: "black" }}>
-      <RNStatusBar hidden={!showUI} />
+      <RNStatusBar
+        hidden={!showUI}
+        barStyle="light-content"
+        backgroundColor="black"
+      />
 
       <FlatList
         ref={flatListRef}
