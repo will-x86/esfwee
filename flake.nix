@@ -57,6 +57,7 @@
             jdk17
             nodejs
             bruno
+            eas-cli
           ];
           shellHook = ''
             alias ls=eza

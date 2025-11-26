@@ -5,6 +5,7 @@ import { AuthProvider } from "@/context/auth-context";
 import { EsfweeUrlProvider } from "@/context/esfwee";
 import { ThemeProvider, useTheme } from "@/context/theme-context";
 import { ApolloClientProvider } from "@/context/apollo-context";
+import { ReaderSettingsProvider } from "@/context/reader-settings";
 
 export default function RootLayout() {
   return (
@@ -12,7 +13,9 @@ export default function RootLayout() {
       <AuthProvider>
         <ApolloClientProvider>
           <EsfweeUrlProvider>
-            <HomeLayout />
+            <ReaderSettingsProvider>
+              <HomeLayout />
+            </ReaderSettingsProvider>
           </EsfweeUrlProvider>
         </ApolloClientProvider>
       </AuthProvider>

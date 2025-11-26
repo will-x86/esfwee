@@ -4691,6 +4691,14 @@ export type YearStats = {
   year: Maybe<Scalars['Int']['output']>;
 };
 
+export type GetMediaListQueryVariables = Exact<{
+  userId: Scalars['Int']['input'];
+  type: InputMaybe<MediaType>;
+}>;
+
+
+export type GetMediaListQuery = { __typename?: 'Query', MediaListCollection: { __typename?: 'MediaListCollection', lists: Array<{ __typename?: 'MediaListGroup', name: string | null, isCustomList: boolean | null, isSplitCompletedList: boolean | null, status: MediaListStatus | null, entries: Array<{ __typename?: 'MediaList', id: number, mediaId: number, status: MediaListStatus | null, score: number | null, progress: number | null, progressVolumes: number | null, repeat: number | null, priority: number | null, private: boolean | null, notes: string | null, updatedAt: number | null, createdAt: number | null, startedAt: { __typename?: 'FuzzyDate', year: number | null, month: number | null, day: number | null } | null, completedAt: { __typename?: 'FuzzyDate', year: number | null, month: number | null, day: number | null } | null, media: { __typename?: 'Media', id: number, chapters: number | null, volumes: number | null, format: MediaFormat | null, status: MediaStatus | null, averageScore: number | null, description: string | null, title: { __typename?: 'MediaTitle', romaji: string | null, english: string | null, native: string | null } | null, coverImage: { __typename?: 'MediaCoverImage', large: string | null, medium: string | null } | null } | null } | null> | null } | null> | null } | null };
+
 export type SearchMangaQueryVariables = Exact<{
   search: Scalars['String']['input'];
   page: InputMaybe<Scalars['Int']['input']>;
@@ -4716,6 +4724,76 @@ export type GetPopularMangaQueryVariables = Exact<{
 export type GetPopularMangaQuery = { __typename?: 'Query', Page: { __typename?: 'Page', pageInfo: { __typename?: 'PageInfo', hasNextPage: boolean | null, currentPage: number | null, lastPage: number | null } | null, media: Array<{ __typename?: 'Media', id: number, chapters: number | null, volumes: number | null, format: MediaFormat | null, status: MediaStatus | null, averageScore: number | null, title: { __typename?: 'MediaTitle', romaji: string | null, english: string | null, native: string | null } | null, coverImage: { __typename?: 'MediaCoverImage', large: string | null, medium: string | null } | null } | null> | null } | null };
 
 
+
+export const GetMediaListDocument = `
+    query GetMediaList($userId: Int!, $type: MediaType) {
+  MediaListCollection(userId: $userId, type: $type) {
+    lists {
+      name
+      isCustomList
+      isSplitCompletedList
+      status
+      entries {
+        id
+        mediaId
+        status
+        score
+        progress
+        progressVolumes
+        repeat
+        priority
+        private
+        notes
+        startedAt {
+          year
+          month
+          day
+        }
+        completedAt {
+          year
+          month
+          day
+        }
+        updatedAt
+        createdAt
+        media {
+          id
+          title {
+            romaji
+            english
+            native
+          }
+          coverImage {
+            large
+            medium
+          }
+          chapters
+          volumes
+          format
+          status
+          averageScore
+          description
+        }
+      }
+    }
+  }
+}
+    `;
+
+export const useGetMediaListQuery = <
+      TData = GetMediaListQuery,
+      TError = unknown
+    >(
+      dataSource: { endpoint: string, fetchParams?: RequestInit },
+      variables: GetMediaListQueryVariables,
+      options?: UseQueryOptions<GetMediaListQuery, TError, TData>
+    ) => {
+    
+    return useQuery<GetMediaListQuery, TError, TData>(
+      ['GetMediaList', variables],
+      fetcher<GetMediaListQuery, GetMediaListQueryVariables>(dataSource.endpoint, dataSource.fetchParams || {}, GetMediaListDocument, variables),
+      options
+    )};
 
 export const SearchMangaDocument = `
     query SearchManga($search: String!, $page: Int, $perPage: Int) {

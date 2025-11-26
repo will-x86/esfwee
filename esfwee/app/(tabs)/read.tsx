@@ -10,14 +10,13 @@ import {
   Text,
   FlatList,
   ActivityIndicator,
-  ScrollView,
   TouchableOpacity,
   StyleSheet,
   Dimensions,
 } from "react-native";
-import { Image } from "expo-image";
 import { MangaCard } from "@/components/MangaCard";
 import Feather from "@expo/vector-icons/Feather";
+import { Reader } from "@/components/Reader";
 
 type ViewMode = "manga" | "chapters" | "reader";
 
@@ -31,7 +30,6 @@ export default function ReadScreen() {
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [loadingChapters, setLoadingChapters] = useState(false);
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
   const [covers, setCovers] = useState<Record<number, string>>({});
 
   const [getMangaDetails] = useLazyQuery(GET_MANGA_DETAILS);
@@ -47,7 +45,9 @@ export default function ReadScreen() {
 
         const newCovers: Record<number, string> = {};
         for (const m of manga) {
-          const { data } = await getMangaDetails({ variables: { id: m.anilist_id } });
+          const { data } = await getMangaDetails({
+            variables: { id: m.anilist_id },
+          });
           if (data?.Media?.coverImage?.medium) {
             newCovers[m.anilist_id] = data.Media.coverImage.medium;
           }
@@ -82,7 +82,6 @@ export default function ReadScreen() {
 
   const handleSelectChapter = (chapter: Chapter) => {
     setSelectedChapter(chapter);
-    setCurrentPage(1);
     setViewMode("reader");
   };
 
@@ -94,18 +93,6 @@ export default function ReadScreen() {
       setViewMode("manga");
       setSelectedManga(null);
       setChapters([]);
-    }
-  };
-
-  const handleNextPage = () => {
-    if (selectedChapter && currentPage < selectedChapter.page_count) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
-
-  const handlePrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
     }
   };
 
@@ -175,7 +162,10 @@ export default function ReadScreen() {
                 </Text>
                 {item.title && (
                   <Text
-                    style={[themeStyles.caption, { color: colors.textSecondary }]}
+                    style={[
+                      themeStyles.caption,
+                      { color: colors.textSecondary },
+                    ]}
                     numberOfLines={1}
                   >
                     {item.title}
@@ -187,7 +177,11 @@ export default function ReadScreen() {
                   {item.page_count} pages
                 </Text>
               </View>
-              <Feather name="chevron-right" size={24} color={colors.textSecondary} />
+              <Feather
+                name="chevron-right"
+                size={24}
+                color={colors.textSecondary}
+              />
             </TouchableOpacity>
           )}
           keyExtractor={(item) => item.id.toString()}
@@ -195,78 +189,19 @@ export default function ReadScreen() {
       )}
     </View>
   );
-
-  const renderReader = () => {
-    if (!selectedChapter || !esfweeUrl) return null;
-    const client = new MangaApiClient(esfweeUrl);
-    const pageUrl = client.getPageUrl(selectedChapter.id, currentPage);
-
-    return (
-      <View style={[styles.readerContainer, { backgroundColor: colors.background }]}>
-        <View style={[styles.readerHeader, { backgroundColor: colors.surface }]}>
-          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Feather name="arrow-left" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={[themeStyles.body, { color: colors.text, flex: 1 }]}>
-            Chapter {selectedChapter.chapter_number} - Page {currentPage}/
-            {selectedChapter.page_count}
-          </Text>
-        </View>
-        <ScrollView
-          contentContainerStyle={styles.pageContainer}
-          maximumZoomScale={3}
-          minimumZoomScale={1}
-        >
-          <Image
-            source={{ uri: pageUrl }}
-            style={styles.pageImage}
-            contentFit="contain"
-          />
-        </ScrollView>
-        <View style={[styles.readerControls, { backgroundColor: colors.surface }]}>
-          <TouchableOpacity
-            onPress={handlePrevPage}
-            disabled={currentPage === 1}
-            style={[
-              styles.controlButton,
-              currentPage === 1 && styles.controlButtonDisabled,
-            ]}
-          >
-            <Feather
-              name="chevron-left"
-              size={32}
-              color={currentPage === 1 ? colors.textMuted : colors.text}
-            />
-          </TouchableOpacity>
-          <Text style={[themeStyles.body, { color: colors.text }]}>
-            {currentPage} / {selectedChapter.page_count}
-          </Text>
-          <TouchableOpacity
-            onPress={handleNextPage}
-            disabled={currentPage === selectedChapter.page_count}
-            style={[
-              styles.controlButton,
-              currentPage === selectedChapter.page_count &&
-                styles.controlButtonDisabled,
-            ]}
-          >
-            <Feather
-              name="chevron-right"
-              size={32}
-              color={
-                currentPage === selectedChapter.page_count
-                  ? colors.textMuted
-                  : colors.text
-              }
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  };
-
   if (viewMode === "reader") {
-    return renderReader();
+    if (!selectedChapter || !esfweeUrl) return null;
+    return (
+      <Reader
+        esfweeUrl={esfweeUrl}
+        chapter={{
+          id: selectedChapter.id,
+          number: String(selectedChapter.chapter_number),
+          pageCount: selectedChapter.page_count,
+        }}
+        onBack={handleBack}
+      />
+    );
   }
 
   return (

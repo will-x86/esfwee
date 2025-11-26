@@ -11,6 +11,7 @@ import {
 import { useTheme } from "@/context/theme-context";
 import { useAuth } from "@/context/auth-context";
 import { useEsfweeUrl } from "@/context/esfwee";
+import { ReaderSettings } from "@/components/ReaderSettings";
 
 export default function SettingsScreen() {
   const { url, setUrl } = useEsfweeUrl();
@@ -51,11 +52,15 @@ export default function SettingsScreen() {
             Logout of anilist
           </Text>
         </TouchableOpacity>
-        <View style={styles.buttonContainer}>
+        <View>
+          <ReaderSettings />
+        </View>
+
+        <View>
           <Text style={[styles.heading, { color: colors.text }]}>
             Esfwee Settings
           </Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          <Text style={[{ color: colors.textSecondary }]}>
             Update Esfwee URL
           </Text>
           <TextInput
@@ -72,7 +77,7 @@ export default function SettingsScreen() {
             style={({ pressed }) => [
               styles.button,
               { backgroundColor: colors.primary },
-              pressed && styles.buttonPressed,
+              pressed && styles,
             ]}
             onPress={onPressEsfwee}
           >

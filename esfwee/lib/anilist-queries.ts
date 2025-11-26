@@ -1,13 +1,71 @@
 import { gql, TypedDocumentNode } from "@apollo/client";
 import type {
   SearchMangaQuery,
+  GetMediaListQuery,
+  GetMediaListQueryVariables,
   SearchMangaQueryVariables,
   GetMangaDetailsQuery,
   GetMangaDetailsQueryVariables,
   GetPopularMangaQuery,
   GetPopularMangaQueryVariables,
 } from "@/__generated__/graphql";
-
+export const GET_MEDIA_LIST: TypedDocumentNode<
+  GetMediaListQuery,
+  GetMediaListQueryVariables
+> = gql`
+  query GetMediaList($userId: Int!, $type: MediaType) {
+    MediaListCollection(userId: $userId, type: $type) {
+      lists {
+        name
+        isCustomList
+        isSplitCompletedList
+        status
+        entries {
+          id
+          mediaId
+          status
+          score
+          progress
+          progressVolumes
+          repeat
+          priority
+          private
+          notes
+          startedAt {
+            year
+            month
+            day
+          }
+          completedAt {
+            year
+            month
+            day
+          }
+          updatedAt
+          createdAt
+          media {
+            id
+            title {
+              romaji
+              english
+              native
+            }
+            coverImage {
+              large
+              medium
+            }
+            chapters
+            volumes
+            format
+            status
+            averageScore
+            description
+          }
+        }
+      }
+    }
+  }
+`;
 export const SEARCH_MANGA: TypedDocumentNode<
   SearchMangaQuery,
   SearchMangaQueryVariables
