@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -15,7 +15,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { Reader } from "@/components/Reader";
 
 export default function ChaptersScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, progress } = useLocalSearchParams<{ id: string; progress?: string }>();
+  const flatListRef = useRef<FlatList>(null);
   const { colors, styles: themeStyles } = useTheme();
   const { url: esfweeUrl } = useEsfweeUrl();
   const [chapters, setChapters] = useState<Chapter[]>([]);
@@ -43,6 +44,28 @@ export default function ChaptersScreen() {
     };
     loadChapters();
   }, [esfweeUrl, id]);
+
+  useEffect(() => {
+    if (chapters.length > 0 && progress && flatListRef.current) {
+      const userProgress = parseInt(progress);
+      if (userProgress > 0) {
+        // Find the index of the chapter closest to user's progress
+        const targetIndex = chapters.findIndex(
+          (ch) => ch.chapter_number >= userProgress
+        );
+        if (targetIndex !== -1) {
+          // Use a timeout to ensure the list is fully rendered
+          setTimeout(() => {
+            flatListRef.current?.scrollToIndex({
+              index: targetIndex,
+              animated: true,
+              viewPosition: 0.5,
+            });
+          }, 100);
+        }
+      }
+    }
+  }, [chapters, progress]);
 
   const handleChapterPress = (chapter: Chapter) => {
     setSelectedChapter(chapter);
@@ -97,9 +120,19 @@ export default function ChaptersScreen() {
           </View>
         ) : (
           <FlatList
+            ref={flatListRef}
             data={chapters}
             contentContainerStyle={styles.list}
             keyExtractor={(item) => item.id.toString()}
+            onScrollToIndexFailed={(info) => {
+              const wait = new Promise((resolve) => setTimeout(resolve, 500));
+              wait.then(() => {
+                flatListRef.current?.scrollToIndex({
+                  index: info.index,
+                  animated: true,
+                });
+              });
+            }}
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={[

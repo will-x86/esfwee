@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
-import { useLocalSearchParams, router, Stack } from "expo-router";
+import { useLocalSearchParams, router, Stack, useFocusEffect } from "expo-router";
 import { Image } from "expo-image";
 import { useTheme } from "@/context/theme-context";
 import { useAuth } from "@/context/auth-context";
@@ -77,19 +77,22 @@ export default function MangaDetailScreen() {
     }
   }, [mangaData]);
 
-  useEffect(() => {
-    const loadLocalChapters = async () => {
-      if (!esfweeUrl || !id) return;
-      try {
-        const client = new MangaApiClient(esfweeUrl);
-        const chapters = await client.listChapters(parseInt(id));
-        setLocalChapters(chapters.length);
-      } catch (error) {
-        setLocalChapters(0);
-      }
-    };
-    loadLocalChapters();
+  const loadLocalChapters = useCallback(async () => {
+    if (!esfweeUrl || !id) return;
+    try {
+      const client = new MangaApiClient(esfweeUrl);
+      const chapters = await client.listChapters(parseInt(id));
+      setLocalChapters(chapters.length);
+    } catch (error) {
+      setLocalChapters(0);
+    }
   }, [esfweeUrl, id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadLocalChapters();
+    }, [loadLocalChapters])
+  );
 
   const manga = mangaData?.Media;
   const title =
@@ -100,7 +103,7 @@ export default function MangaDetailScreen() {
 
   const handleRead = () => {
     if (localChapters > 0) {
-      router.push(`/manga/${id}/chapters`);
+      router.push(`/manga/${id}/chapters?progress=${userProgress}`);
     }
   };
 

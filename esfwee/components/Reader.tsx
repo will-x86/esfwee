@@ -201,21 +201,22 @@ export const Reader = ({ esfweeUrl, chapter, onBack }: ReaderProps) => {
           <View
             style={{
               paddingTop: insets.top,
-              paddingHorizontal: 16,
-              paddingBottom: 16,
-              backgroundColor: "rgba(0,0,0,0.8)",
+              paddingHorizontal: 12,
+              paddingBottom: 8,
+              backgroundColor: "rgba(0,0,0,0.7)",
               flexDirection: "row",
               alignItems: "center",
             }}
           >
-            <TouchableOpacity onPress={onBack} style={{ padding: 4 }}>
-              <Feather name="arrow-left" size={24} color="white" />
+            <TouchableOpacity onPress={onBack} style={{ padding: 2 }}>
+              <Feather name="arrow-left" size={20} color="white" />
             </TouchableOpacity>
             <Text
               style={{
                 color: "white",
-                marginLeft: 16,
-                fontWeight: "bold",
+                marginLeft: 12,
+                fontWeight: "600",
+                fontSize: 14,
                 flex: 1,
               }}
               numberOfLines={1}
@@ -224,21 +225,21 @@ export const Reader = ({ esfweeUrl, chapter, onBack }: ReaderProps) => {
             </Text>
             <TouchableOpacity
               onPress={() => setShowSettings(true)}
-              style={{ padding: 4 }}
+              style={{ padding: 2 }}
             >
-              <Feather name="settings" size={24} color="white" />
+              <Feather name="settings" size={20} color="white" />
             </TouchableOpacity>
           </View>
 
           <View
             style={{
-              paddingBottom: insets.bottom + 16,
-              paddingTop: 16,
-              backgroundColor: "rgba(0,0,0,0.8)",
+              paddingBottom: insets.bottom + 8,
+              paddingTop: 8,
+              backgroundColor: "rgba(0,0,0,0.7)",
               alignItems: "center",
             }}
           >
-            <Text style={{ color: "white", fontWeight: "600" }}>
+            <Text style={{ color: "white", fontWeight: "500", fontSize: 13 }}>
               Page {currPageNum} / {chapter.pageCount}
             </Text>
           </View>

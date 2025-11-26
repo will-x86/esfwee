@@ -1,7 +1,7 @@
 import { useEsfweeUrl } from "@/context/esfwee";
 import { useTheme } from "@/context/theme-context";
 import { Manga, MangaApiClient, Chapter } from "@/lib/esfwee-api";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLazyQuery } from "@apollo/client/react";
 import { GET_MANGA_DETAILS } from "@/lib/anilist-queries";
 import {
@@ -14,7 +14,7 @@ import {
   StyleSheet,
   Dimensions,
 } from "react-native";
-import { MangaCard } from "@/components/MangaCard";
+import { Image } from "expo-image";
 import Feather from "@expo/vector-icons/Feather";
 import { Reader } from "@/components/Reader";
 
@@ -31,8 +31,17 @@ export default function ReadScreen() {
   const [loadingChapters, setLoadingChapters] = useState(false);
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
   const [covers, setCovers] = useState<Record<number, string>>({});
+  const flatListRef = useRef<FlatList>(null);
 
   const [getMangaDetails] = useLazyQuery(GET_MANGA_DETAILS);
+
+  const sortedManga = [...localManga].sort((a, b) =>
+    a.title.localeCompare(b.title),
+  );
+
+  const alphabet = Array.from(
+    new Set(sortedManga.map((m) => m.title[0].toUpperCase())),
+  ).sort();
 
   useEffect(() => {
     const loadLocalManga = async () => {
@@ -96,33 +105,119 @@ export default function ReadScreen() {
     }
   };
 
+  const scrollToLetter = (letter: string) => {
+    const index = sortedManga.findIndex(
+      (m) => m.title[0].toUpperCase() === letter,
+    );
+    if (index !== -1 && flatListRef.current) {
+      flatListRef.current.scrollToIndex({ index, animated: true });
+    }
+  };
+
   const renderMangaList = () => (
-    <View style={themeStyles.container}>
-      <Text style={[themeStyles.title, { color: colors.text }]}>
-        Read Manga
-      </Text>
+    <View style={{ flex: 1 }}>
       {loadingLocal ? (
-        <ActivityIndicator size="large" color={colors.primary} />
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
       ) : localManga.length === 0 ? (
-        <Text style={[themeStyles.body, { color: colors.textSecondary }]}>
-          No manga available. Upload some chapters first!
-        </Text>
+        <View style={[themeStyles.container, { flex: 1 }]}>
+          <Text
+            style={[
+              themeStyles.title,
+              { color: colors.text, marginBottom: 16 },
+            ]}
+          >
+            Read Manga
+          </Text>
+          <Text style={[themeStyles.body, { color: colors.textSecondary }]}>
+            No manga available. Upload some chapters first!
+          </Text>
+        </View>
       ) : (
-        <FlatList
-          data={localManga}
-          renderItem={({ item }) => (
-            <MangaCard
-              id={item.anilist_id}
-              title={item.title}
-              coverUri={covers[item.anilist_id]}
-              onPress={() => handleSelectManga(item)}
-            />
+        <View style={{ flex: 1, position: "relative" }}>
+          <FlatList
+            ref={flatListRef}
+            data={sortedManga}
+            ListHeaderComponent={() => (
+              <Text
+                style={[
+                  themeStyles.title,
+                  { color: colors.text, marginBottom: 16 },
+                ]}
+              >
+                Read Manga
+              </Text>
+            )}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={[styles.mangaRow, { backgroundColor: colors.surface }]}
+                onPress={() => handleSelectManga(item)}
+              >
+                {item.anilist_id && covers[item.anilist_id] ? (
+                  <Image
+                    source={{ uri: covers[item.anilist_id] }}
+                    style={styles.mangaRowCover}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <View
+                    style={[
+                      styles.mangaRowCover,
+                      { backgroundColor: colors.backgroundSecondary },
+                    ]}
+                  />
+                )}
+                <View style={styles.mangaRowInfo}>
+                  <Text
+                    style={[
+                      themeStyles.body,
+                      { color: colors.text, fontWeight: "600", fontSize: 16 },
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {item.title}
+                  </Text>
+                </View>
+                <Feather
+                  name="chevron-right"
+                  size={24}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+            )}
+            keyExtractor={(item) => item.anilist_id.toString()}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{
+              paddingHorizontal: 16,
+              paddingTop: 16,
+              paddingBottom: 20,
+            }}
+            onScrollToIndexFailed={() => {}}
+          />
+          {alphabet.length > 0 && (
+            <View style={styles.alphabetScroller}>
+              {alphabet.map((letter) => (
+                <TouchableOpacity
+                  key={letter}
+                  onPress={() => scrollToLetter(letter)}
+                  style={styles.letterButton}
+                >
+                  <Text
+                    style={[
+                      styles.letterText,
+                      { color: colors.primary, fontWeight: "600" },
+                    ]}
+                  >
+                    {letter}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           )}
-          keyExtractor={(item) => item.anilist_id.toString()}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.horizontalList}
-        />
+        </View>
       )}
     </View>
   );
@@ -213,8 +308,37 @@ export default function ReadScreen() {
 }
 
 const styles = StyleSheet.create({
-  horizontalList: {
-    flexGrow: 0,
+  mangaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 10,
+    gap: 12,
+  },
+  mangaRowCover: {
+    width: 60,
+    height: 85,
+    borderRadius: 8,
+  },
+  mangaRowInfo: {
+    flex: 1,
+  },
+  alphabetScroller: {
+    position: "absolute",
+    right: 8,
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
+    paddingVertical: 8,
+  },
+  letterButton: {
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    alignItems: "center",
+  },
+  letterText: {
+    fontSize: 12,
   },
   header: {
     flexDirection: "row",
@@ -234,35 +358,5 @@ const styles = StyleSheet.create({
   },
   chapterInfo: {
     flex: 1,
-  },
-  readerContainer: {
-    flex: 1,
-  },
-  readerHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    gap: 12,
-  },
-  pageContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  pageImage: {
-    width: Dimensions.get("window").width,
-    height: Dimensions.get("window").height - 120,
-  },
-  readerControls: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-  },
-  controlButton: {
-    padding: 8,
-  },
-  controlButtonDisabled: {
-    opacity: 0.3,
   },
 });

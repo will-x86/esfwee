@@ -14,6 +14,7 @@ import { useEsfweeUrl } from "@/context/esfwee";
 import { useLazyQuery } from "@apollo/client/react";
 import { GET_MANGA_DETAILS } from "@/lib/anilist-queries";
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 
 type MangaPillResult = {
   title: string;
@@ -210,7 +211,7 @@ export default function DownloadScreen() {
               style={[styles.resultCard, { backgroundColor: colors.surface }]}
               onPress={() => handleSelectManga(item)}
             >
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, marginLeft: item.thumbnail ? 12 : 0 }}>
                 <Text
                   style={[
                     themeStyles.body,
@@ -373,6 +374,11 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
+  },
+  thumbnail: {
+    width: 60,
+    height: 80,
+    borderRadius: 8,
   },
   selectionHeader: {
     flexDirection: "row",
