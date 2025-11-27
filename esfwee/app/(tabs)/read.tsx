@@ -1,7 +1,7 @@
 import { useEsfweeUrl } from "@/context/esfwee";
 import { useTheme } from "@/context/theme-context";
 import { Manga, MangaApiClient, Chapter } from "@/lib/esfwee-api";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useLazyQuery } from "@apollo/client/react";
 import { GET_MANGA_DETAILS } from "@/lib/anilist-queries";
 import {
@@ -12,11 +12,11 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
 } from "react-native";
 import { Image } from "expo-image";
 import Feather from "@expo/vector-icons/Feather";
 import { Reader } from "@/components/Reader";
+import { useFocusEffect } from "expo-router";
 
 type ViewMode = "manga" | "chapters" | "reader";
 
@@ -42,35 +42,38 @@ export default function ReadScreen() {
   const alphabet = Array.from(
     new Set(sortedManga.map((m) => m.title[0].toUpperCase())),
   ).sort();
-
-  useEffect(() => {
-    const loadLocalManga = async () => {
-      if (!esfweeUrl) return;
-      setLoadingLocal(true);
-      try {
-        const client = new MangaApiClient(esfweeUrl);
-        const manga = await client.listManga();
-        setLocalManga(manga);
-
-        const newCovers: Record<number, string> = {};
-        for (const m of manga) {
-          const { data } = await getMangaDetails({
-            variables: { id: m.anilist_id },
-          });
-          if (data?.Media?.coverImage?.medium) {
-            newCovers[m.anilist_id] = data.Media.coverImage.medium;
-          }
+  const loadLocalManga = useCallback(async () => {
+    if (!esfweeUrl) return;
+    setLoadingLocal(true);
+    try {
+      const client = new MangaApiClient(esfweeUrl);
+      const manga = await client.listManga();
+      setLocalManga(manga);
+      const newCovers: Record<number, string> = {};
+      for (const m of manga) {
+        const { data } = await getMangaDetails({
+          variables: { id: m.anilist_id },
+        });
+        if (data?.Media?.coverImage?.medium) {
+          newCovers[m.anilist_id] = data.Media.coverImage.medium;
         }
-        setCovers(newCovers);
-      } catch (error) {
-        console.error("Failed to load local manga:", error);
-        Alert.alert("Error", "Failed to load manga from server");
-      } finally {
-        setLoadingLocal(false);
       }
-    };
+      setCovers(newCovers);
+    } catch (error) {
+      console.error("Failed to load local manga:", error);
+      Alert.alert("Error", "Failed to load manga from server");
+    } finally {
+      setLoadingLocal(false);
+    }
+  }, [esfweeUrl, getMangaDetails]);
+  useFocusEffect(
+    useCallback(() => {
+      loadLocalManga();
+    }, [loadLocalManga]),
+  );
+  /*useEffect(() => {
     loadLocalManga();
-  }, [esfweeUrl]);
+  }, [esfweeUrl]);*/
 
   const handleSelectManga = async (manga: Manga) => {
     setSelectedManga(manga);
